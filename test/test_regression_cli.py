@@ -22,7 +22,7 @@ if os.name == "nt":
 else:
     os_password = ""
 
-mysql_engine, postgres_engine, sqlite_engine, msaccess_engine, csv_engine, download_engine, json_engine, xml_engine = ENGINE_LIST()
+mysql_engine, postgres_engine, sqlite_engine, msaccess_engine, csv_engine, download_engine, json_engine, xml_engine, postgis_engine = ENGINE_LIST()
 file_location = os.path.dirname(os.path.realpath(__file__))
 retriever_root_dir = os.path.abspath(os.path.join(file_location, os.pardir))
 working_script_dir = os.path.abspath(os.path.join(retriever_root_dir, "scripts"))

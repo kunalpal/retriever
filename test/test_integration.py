@@ -412,7 +412,7 @@ def get_script_module(script_name):
     return imp.load_module(script_name, file, pathname, desc)
 
 
-mysql_engine, postgres_engine, sqlite_engine, msaccess_engine, csv_engine, download_engine, json_engine, xml_engine = ENGINE_LIST()
+mysql_engine, postgres_engine, sqlite_engine, msaccess_engine, csv_engine, download_engine, json_engine, xml_engine, postgis_engine = ENGINE_LIST()
 
 
 @pytest.mark.parametrize("dataset, expected", test_parameters)

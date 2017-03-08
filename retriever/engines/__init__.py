@@ -8,7 +8,8 @@ engines = [
     "csvengine",
     "download_only",
     "jsonengine",
-    "xmlengine"
+    "xmlengine",
+    "postgis"
 ]
 
 engine_module_list = [
