@@ -56,56 +56,53 @@ class engine(PostgreSQLEngine):
                 print("Error: " + e)
                 raise
             return ";".join([db_statement]
-                        + ["CREATE EXTENSION IF NOT EXISTS {};".format(extension)
-                           for extension in ["postgis", "postgis_sfcgal", "postgis_topology"]])
+                            + ["CREATE EXTENSION IF NOT EXISTS {}".format(extension)
+                               for extension in ["postgis", "postgis_sfcgal", "postgis_topology"]])
 
     def create_table(self):
         """PostgreSQL needs to commit operations individually."""
         return PostgreSQLEngine.create_table(self)
 
-    def escape_single_quotes(self, value):
-        """Escapes single quotes in the value"""
-        return PostgreSQLEngine.escape_single_quotes(self, value)
-
-    def insert_data_from_file(self, filename):
-        """Use PostgreSQL's "COPY FROM" statement to perform a bulk insert."""
-#         self.get_cursor()
-#         ct = len([True for c in self.table.columns if c[1][0][:3] == "ct-"]) != 0
-#         if (([self.table.cleanup.function, self.table.delimiter,
-#               self.table.header_rows] == [no_cleanup, ",", 1])
-#             and not self.table.fixed_width
-#             and not ct
-#             and (not hasattr(self.table, "do_not_bulk_insert") or not self.table.do_not_bulk_insert)):
-#             columns = self.table.get_insert_columns()
-#             filename = os.path.abspath(filename)
-#             statement = """
-# COPY """ + self.table_name() + " (" + columns + """)
-# FROM '""" + filename.replace("\\", "\\\\") + """'
-# WITH DELIMITER ','
-# CSV HEADER;"""
-#             try:
-#                 self.execute("BEGIN")
-#                 self.execute(statement)
-#                 self.execute("COMMIT")
-#             except:
-#                 self.connection.rollback()
-#                 return Engine.insert_data_from_file(self, filename)
-#         else:
-#             return Engine.insert_data_from_file(self, filename)
-        return PostgreSQLEngine.insert_data_from_file(self, filename)
+    def insert_data_from_file(self, filename, table_name="raster"):
+        if hasattr(self.script, "spatial"):
+            if self.script.spatial is "raster":
+                schema_name = self.script.shortname + "." + table_name
+                sql_save_path = self.format_filename(schema_name + ".sql")
+                print("=> Processing {}".format(schema_name))
+                print("Preaparing intermediate SQL file.")
+                command = "raster2pgsql -c {} {} > {}".format(filename, schema_name, sql_save_path)
+                if not os.system(command):
+                    self.get_cursor()
+                    with open(sql_save_path) as sql_content:
+                        try:
+                            self.cursor.execute(sql_content.read())
+                        except Exception as e:
+                            self.connection.rollback()
+                            raise e
+                        finally:
+                            sql_content.close()
+                            os.system("rm -rf {}".format(sql_save_path))
+                else:
+                    raise Exception("Unable to parse file using raster2pgsql")
+            else:
+                raise Exception("Currently only raster types are supported.")
+        else:
+            return PostgreSQLEngine.insert_data_from_file(self, filename)
 
     def format_insert_value(self, value, datatype):
         """Formats a value for an insert statement"""
         return PostgreSQLEngine.format_insert_value(self, value, datatype)
 
-    def check_postgis_availability(self):
-        self.cursor.execute("SELECT PostGIS_Version();")
-        if self.cursor.fetchone() is not None:
-            raster2pgsql = os.system("which raster2pgsql > /dev/null")
-            shp2pgsql = os.system("which shp2pgsql > /dev/null")
-            if raster2pgsql or shp2pgsql:
-                raise Exception("Spatial operations require raster2pgsql and shp2pgsql.\n"
-                                + "Please check if these two executables are available in "
-                                + "the environment.")
-        else:
-            raise Exception("PostGIS is not installed.\n")
+    @staticmethod
+    def check_postgis_availability():
+        # self.get_cursor()
+        # self.cursor.execute("SELECT PostGIS_Version();")
+        # if self.cursor.fetchone() is not None:
+        raster2pgsql = os.system("which raster2pgsql > /dev/null")
+        shp2pgsql = os.system("which shp2pgsql > /dev/null")
+        if raster2pgsql or shp2pgsql:
+            raise Exception("Spatial operations require raster2pgsql and shp2pgsql.\n"
+                            + "Please check if these two executables are available in "
+                            + "the environment.")
+        # else:
+            # raise Exception("PostGIS is not installed.\n")
